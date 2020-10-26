@@ -44,6 +44,7 @@ let toolsDir = Path.getFullName "tools"
 let clientSrcPath = srcDir </> "SAFEr.App.Client"
 let serverSrcPath = srcDir </> "SAFEr.App.Server"
 let appPublishPath = publishDir </> "app"
+let clientPublishPath = appPublishPath </> "public"
 let infrastructureSrcPath = toolsDir </> "infrastructure"
 let infrastructurePublishPath = publishDir </> "infrastructure"
 
@@ -64,11 +65,11 @@ Target.create "Publish" (fun _ ->
     [ appPublishPath ] |> Shell.cleanDirs
     let publishArgs = sprintf "publish -c Release -o \"%s\"" appPublishPath
     Tools.dotnet publishArgs serverSrcPath
-    Tools.yarn "webpack-cli -p" __SOURCE_DIRECTORY__
+    Tools.dotnet (sprintf "fable src/SAFEr.App.Client --outDir %s --run webpack" clientPublishPath) __SOURCE_DIRECTORY__
 )
 
 Target.create "PublishInfrastructure" (fun _ ->
-    Tools.dotnet (sprintf "publish -c Release -o \"%s\"" infrastructurePublishPath) infrastructureSrcPath
+    ()//Tools.dotnet (sprintf "publish -c Release -o \"%s\"" infrastructurePublishPath) infrastructureSrcPath
 )
 
 Target.create "Run" (fun _ ->
@@ -76,9 +77,9 @@ Target.create "Run" (fun _ ->
         Tools.dotnet "watch run" serverSrcPath
     }
     let client = async {
-        Tools.yarn "webpack-dev-server" clientSrcPath
+        Tools.dotnet (sprintf "fable watch --outDir %s --run webpack-dev-server" clientPublishPath) clientSrcPath
     }
-    [server;client]
+    [client;server]
     |> Async.Parallel
     |> Async.RunSynchronously
     |> ignore
